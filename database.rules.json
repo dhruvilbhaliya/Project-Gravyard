@@ -1,0 +1,71 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "users": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (auth.uid === $uid && newData.exists() && (data.exists() ? newData.child('role').val() === data.child('role').val() : (newData.child('role').val() === 'user' && newData.child('email').val() === auth.token.email))))",
+        ".validate": "newData.hasChildren(['fullName','username','email','role']) && (newData.child('role').val() === 'user' || newData.child('role').val() === 'admin')"
+      }
+    },
+    "usernames": {
+      "$name": {
+        ".read": true,
+        ".write": "auth != null && ((!data.exists() && newData.val() === auth.uid) || (data.exists() && !newData.exists() && (data.val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')))"
+      }
+    },
+    "projects": {
+      ".read": true,
+      "$pid": {
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (data.exists() ? data.child('ownerId').val() === auth.uid : newData.child('ownerId').val() === auth.uid)) && (!newData.exists() || !data.exists() || newData.child('ownerId').val() === data.child('ownerId').val())",
+        ".validate": "newData.hasChildren(['name','ownerId','status','category'])"
+      }
+    },
+    "zips": {
+      ".read": true,
+      "$pid": {
+        ".write": "auth != null && (root.child('projects').child($pid).child('ownerId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin') && (!newData.exists() || newData.child('ownerId').val() === root.child('projects').child($pid).child('ownerId').val())"
+      }
+    },
+    "zipData": {
+      "$pid": {
+        ".read": "auth != null && (root.child('zips').child($pid).child('allowDownload').val() === true || root.child('zips').child($pid).child('ownerId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('requests').child($pid + '_' + auth.uid + '_download').child('status').val() === 'accepted')",
+        ".write": "auth != null && (root.child('projects').child($pid).child('ownerId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        ".validate": "newData.isString() && newData.val().length < 7200000"
+      }
+    },
+    "requests": {
+      ".indexOn": [
+        "userId",
+        "ownerId"
+      ],
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (query.orderByChild === 'userId' && query.equalTo === auth.uid) || (query.orderByChild === 'ownerId' && query.equalTo === auth.uid))",
+      "$rid": {
+        ".write": "auth != null && ((!data.exists() && newData.child('userId').val() === auth.uid && newData.child('status').val() === 'pending' && newData.child('ownerId').val() !== auth.uid && newData.child('ownerId').val() === root.child('projects').child(newData.child('projectId').val()).child('ownerId').val() && (($rid === newData.child('projectId').val() + '_' + auth.uid && newData.child('type').val() === 'contribute') || ($rid === newData.child('projectId').val() + '_' + auth.uid + '_download' && newData.child('type').val() === 'download'))) || (data.exists() && newData.exists() && data.child('ownerId').val() === auth.uid && newData.child('decidedById').val() === auth.uid && (newData.child('status').val() === 'pending' || newData.child('status').val() === 'accepted' || newData.child('status').val() === 'rejected') && newData.child('userId').val() === data.child('userId').val() && newData.child('ownerId').val() === data.child('ownerId').val() && newData.child('projectId').val() === data.child('projectId').val() && newData.child('type').val() === data.child('type').val()) || (data.exists() && !newData.exists() && (data.child('ownerId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')))"
+      }
+    },
+    "bookmarks": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')"
+      }
+    },
+    "logs": {
+      ".indexOn": [
+        "ownerId",
+        "at"
+      ],
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (query.orderByChild === 'ownerId' && query.equalTo === auth.uid))",
+      "$lid": {
+        ".write": "auth != null && ((!data.exists() && newData.child('userId').val() === auth.uid) || (data.exists() && root.child('users').child(auth.uid).child('role').val() === 'admin'))",
+        ".validate": "newData.hasChildren(['at','type','userId'])"
+      }
+    },
+    "meta": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    }
+  }
+}
